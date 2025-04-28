@@ -25,7 +25,8 @@ class MapSample extends StatefulWidget {
 class MapSampleState extends State<MapSample> {
   GoogleMapController? mapController;
   LatLng? tappedLocation;
-  final Location location = Location(); // Locationインスタンスを追加
+  final Location location = Location();
+  Set<Marker> markers = {};
 
   @override
   void initState() {
@@ -45,6 +46,13 @@ class MapSampleState extends State<MapSample> {
   void _onTap(LatLng latLng) {
     setState(() {
       tappedLocation = latLng;
+      markers = {
+        Marker(
+          markerId: const MarkerId('selected_location'),
+          position: latLng,
+          infoWindow: const InfoWindow(title: '選択した場所'),
+        ),
+      };
     });
   }
 
@@ -77,11 +85,12 @@ class MapSampleState extends State<MapSample> {
                 child: GoogleMap(
                   onMapCreated: _onMapCreated,
                   initialCameraPosition: const CameraPosition(
-                    target: LatLng(35.681236, 139.767125), // 東京駅周辺
+                    target: LatLng(35.681236, 139.767125), // 東京駅
                     zoom: 14,
                   ),
                   onTap: _onTap,
                   myLocationEnabled: true,
+                  markers: markers,
                 ),
               ),
               if (tappedLocation != null)
@@ -95,8 +104,8 @@ class MapSampleState extends State<MapSample> {
             ],
           ),
           Positioned(
-            bottom: 16,
-            right: 80,
+            bottom: 80,
+            right: 16,
             child: FloatingActionButton(
               onPressed: _moveToCurrentLocation,
               child: const Icon(Icons.my_location),
