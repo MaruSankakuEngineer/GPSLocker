@@ -25,6 +25,7 @@ class MapSample extends StatefulWidget {
 class MapSampleState extends State<MapSample> {
   GoogleMapController? mapController;
   LatLng? tappedLocation;
+  final Location location = Location(); // Locationインスタンスを追加
 
   @override
   void initState() {
@@ -47,33 +48,60 @@ class MapSampleState extends State<MapSample> {
     });
   }
 
+  Future<void> _moveToCurrentLocation() async {
+    try {
+      final userLocation = await location.getLocation();
+      if (mapController != null) {
+        mapController!.animateCamera(
+          CameraUpdate.newLatLng(
+            LatLng(userLocation.latitude!, userLocation.longitude!),
+          ),
+        );
+      }
+    } catch (e) {
+      print('現在位置取得に失敗しました: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('GPSロッカー設定アプリ'),
       ),
-      body: Column(
+      body: Stack(
         children: [
-          Expanded(
-            child: GoogleMap(
-              onMapCreated: _onMapCreated,
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(35.681236, 139.767125), // 東京駅周辺
-                zoom: 14,
+          Column(
+            children: [
+              Expanded(
+                child: GoogleMap(
+                  onMapCreated: _onMapCreated,
+                  initialCameraPosition: const CameraPosition(
+                    target: LatLng(35.681236, 139.767125), // 東京駅周辺
+                    zoom: 14,
+                  ),
+                  onTap: _onTap,
+                  myLocationEnabled: true,
+                ),
               ),
-              onTap: _onTap,
-              myLocationEnabled: true,
+              if (tappedLocation != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    '選択した位置：\n緯度: ${tappedLocation!.latitude}, 経度: ${tappedLocation!.longitude}',
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+            ],
+          ),
+          Positioned(
+            bottom: 16,
+            right: 80,
+            child: FloatingActionButton(
+              onPressed: _moveToCurrentLocation,
+              child: const Icon(Icons.my_location),
             ),
           ),
-          if (tappedLocation != null)
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                '選択した位置：\n緯度: ${tappedLocation!.latitude}, 経度: ${tappedLocation!.longitude}',
-                textAlign: TextAlign.center,
-              ),
-            ),
         ],
       ),
     );
