@@ -127,6 +127,13 @@ class MapSampleState extends State<MapSample> {
     }
   }
 
+  void _sendLocationToDevice() {
+    if (savedLocation != null) {
+      // TODO: ここにBLE通信とか座標送信処理を書く
+      print('デバイスへ送信する座標: 緯度=${savedLocation!.latitude}, 経度=${savedLocation!.longitude}');
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -186,10 +193,26 @@ class MapSampleState extends State<MapSample> {
                   Positioned(
                     bottom: 150,
                     right: 16,
-                    child: FloatingActionButton.extended(
-                      onPressed: _moveToSavedLocation,
-                      icon: const Icon(Icons.place),
-                      label: const Text('設定位置へ'),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FloatingActionButton.extended(
+                            onPressed: _moveToSavedLocation,
+                            icon: const Icon(Icons.place),
+                            label: const Text('設定位置へ'),
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FloatingActionButton.extended(
+                            onPressed: _sendLocationToDevice, // ← ここ後で作る関数
+                            icon: const Icon(Icons.send),
+                            label: const Text('デバイスへ座標送信'),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
             ],
