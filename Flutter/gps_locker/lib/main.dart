@@ -25,6 +25,7 @@ class MapSample extends StatefulWidget {
 class MapSampleState extends State<MapSample> {
   GoogleMapController? mapController;
   LatLng? tappedLocation;
+  LatLng? savedLocation;
   final Location location = Location();
   Set<Marker> markers = {};
 
@@ -56,6 +57,17 @@ class MapSampleState extends State<MapSample> {
     });
   }
 
+  void _onSetLocation() {
+    if (tappedLocation != null) {
+      setState(() {
+        savedLocation = tappedLocation;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('座標を設定しました')),
+      );
+    }
+  }
+
   Future<void> _moveToCurrentLocation() async {
     try {
       final userLocation = await location.getLocation();
@@ -71,11 +83,34 @@ class MapSampleState extends State<MapSample> {
     }
   }
 
+  Future<void> _moveToSavedLocation() async {
+    if (savedLocation != null && mapController != null) {
+      mapController!.animateCamera(
+        CameraUpdate.newLatLng(savedLocation!),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('GPSロッカー設定アプリ'),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+            child: ElevatedButton(
+              onPressed: _onSetLocation,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
+              child: const Text('座標設定'),
+            ),
+          ),
+        ],
       ),
       body: Stack(
         children: [
@@ -85,7 +120,7 @@ class MapSampleState extends State<MapSample> {
                 child: GoogleMap(
                   onMapCreated: _onMapCreated,
                   initialCameraPosition: const CameraPosition(
-                    target: LatLng(35.681236, 139.767125), // 東京駅
+                    target: LatLng(35.681236, 139.767125),
                     zoom: 14,
                   ),
                   onTap: _onTap,
@@ -97,19 +132,30 @@ class MapSampleState extends State<MapSample> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: Text(
-                    '選択した位置：\n緯度: ${tappedLocation!.latitude}, 経度: ${tappedLocation!.longitude}',
+                    '選択中の位置：\n緯度: ${tappedLocation!.latitude.toStringAsFixed(6)} \n経度: ${tappedLocation!.longitude.toStringAsFixed(6)}',
                     textAlign: TextAlign.center,
                   ),
                 ),
+              if (savedLocation != null)
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    '✅ 設定済みの位置：\n緯度: ${savedLocation!.latitude.toStringAsFixed(6)} \n経度: ${savedLocation!.longitude.toStringAsFixed(6)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                if (savedLocation != null)
+                  Positioned(
+                    bottom: 150,
+                    right: 16,
+                    child: FloatingActionButton.extended(
+                      onPressed: _moveToSavedLocation,
+                      icon: const Icon(Icons.place),
+                      label: const Text('設定位置へ'),
+                    ),
+                  ),
             ],
-          ),
-          Positioned(
-            bottom: 80,
-            right: 16,
-            child: FloatingActionButton(
-              onPressed: _moveToCurrentLocation,
-              child: const Icon(Icons.my_location),
-            ),
           ),
         ],
       ),
