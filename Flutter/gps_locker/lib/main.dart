@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 
 void main() {
   runApp(const MyApp());
@@ -33,6 +35,7 @@ class MapSampleState extends State<MapSample> {
   void initState() {
     super.initState();
     _requestPermissions();
+    _loadSavedLocation();
   }
 
   Future<void> _requestPermissions() async {
@@ -42,6 +45,12 @@ class MapSampleState extends State<MapSample> {
 
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
+
+    if (savedLocation != null) {
+      mapController!.animateCamera(
+        CameraUpdate.newLatLng(savedLocation!),
+      );
+    }
   }
 
   void _onTap(LatLng latLng) {
@@ -62,6 +71,7 @@ class MapSampleState extends State<MapSample> {
       setState(() {
         savedLocation = tappedLocation;
       });
+      _saveLocationToPrefs(tappedLocation!);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('座標を設定しました')),
       );
@@ -90,6 +100,33 @@ class MapSampleState extends State<MapSample> {
       );
     }
   }
+
+  Future<void> _saveLocationToPrefs(LatLng location) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('saved_latitude', location.latitude);
+    await prefs.setDouble('saved_longitude', location.longitude);
+  }
+
+  Future<void> _loadSavedLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lat = prefs.getDouble('saved_latitude');
+    final lng = prefs.getDouble('saved_longitude');
+
+    if (lat != null && lng != null) {
+      final location = LatLng(lat, lng);
+      setState(() {
+        savedLocation = location;
+        markers = {
+          Marker(
+            markerId: const MarkerId('saved_location'),
+            position: location,
+            infoWindow: const InfoWindow(title: '設定済みの場所'),
+          ),
+        };
+      });
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
