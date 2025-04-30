@@ -3,6 +3,8 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:location/location.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'send_location.dart';
+
 
 
 void main() {
@@ -129,8 +131,12 @@ class MapSampleState extends State<MapSample> {
 
   void _sendLocationToDevice() {
     if (savedLocation != null) {
-      // TODO: ここにBLE通信とか座標送信処理を書く
-      print('デバイスへ送信する座標: 緯度=${savedLocation!.latitude}, 経度=${savedLocation!.longitude}');
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SendLocationPage(location: savedLocation!),
+        ),
+      );
     }
   }
 
