@@ -6,6 +6,7 @@
 #include <TinyGPS++.h>
 #include <HardwareSerial.h>
 #include "esp_bt_main.h"
+#include <ESP32Servo.h>  // サーボライブラリを追加
 
 // デバッグモード制御
 #define DEBUG_MODE  // コメントアウトするとデバッグ出力が無効になります
@@ -30,6 +31,14 @@ unsigned long lastDebugTime = 0;  // デバッグ用のタイマー
 
 TinyGPSPlus gps;
 HardwareSerial gpsSerial(1);  // UART1（GPIO21=RX, GPIO22=TX）を使用
+
+#define SERVO_PIN 14  // サーボモーターのピン（GPIO14に変更）
+#define LOCK_POSITION 0    // ロック位置（角度）
+#define UNLOCK_POSITION 90 // アンロック位置（角度）
+#define LOCK_DISTANCE 100.0 // ロック解除を許可する距離（メートル）
+
+Servo lockServo;  // サーボオブジェクトの作成
+bool isLocked = true;  // ロック状態管理用フラグ
 
 void saveCoordinates(float lat, float lng) {
   EEPROM.put(0, lat);
@@ -91,9 +100,29 @@ double distanceMeters(float lat1, float lon1, float lat2, float lon2) {
   return R * c;
 }
 
+void setLockState(bool lock) {
+  if (lock != isLocked) {
+    isLocked = lock;
+    if (lock) {
+      lockServo.write(LOCK_POSITION);
+      DEBUG_PRINTLN("🔒 ロックしました");
+    } else {
+      lockServo.write(UNLOCK_POSITION);
+      DEBUG_PRINTLN("🔓 ロック解除しました");
+    }
+  }
+}
+
 void setup() {
   Serial.begin(115200);
   DEBUG_PRINTLN("== SETUP START ==");
+
+  // サーボの初期化
+  ESP32PWM::allocateTimer(0);  // タイマー0を割り当て
+  lockServo.setPeriodHertz(50);  // 標準的な50Hz
+  lockServo.attach(SERVO_PIN, 500, 2400);  // SG92R用の適切なパルス幅
+  lockServo.write(LOCK_POSITION);  // 初期位置（ロック位置）
+  DEBUG_PRINTLN("✅ サーボモーター初期化完了");
 
   // Classic BTメモリ解放（BLE専用のため）
   if (esp_bt_controller_mem_release(ESP_BT_MODE_CLASSIC_BT) == ESP_OK) {
@@ -159,10 +188,12 @@ void loop() {
     double dist = distanceMeters(currentLat, currentLng, savedLat, savedLng);
     DEBUG_PRINTF("距離: %.2f m\n", dist);
 
-    if (dist < 100.0) {
+    if (dist < LOCK_DISTANCE) {
       DEBUG_PRINTLN("✅ 近接一致: ロック解除可");
+      setLockState(false);  // ロック解除
     } else {
       DEBUG_PRINTLN("❌ 距離不一致: ロック解除不可");
+      setLockState(true);   // ロック
     }
   }
 } 
